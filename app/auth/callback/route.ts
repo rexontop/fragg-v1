@@ -17,53 +17,86 @@ export async function GET(request: Request) {
   }
 
   // Steam OpenID callback
-  const steamParams = new URLSearchParams()
+  const steamParams: Record<string, string> = {}
   for (const [key, value] of searchParams.entries()) {
     if (key.startsWith("openid.")) {
-      steamParams.append(key, value)
+      steamParams[key] = value
     }
   }
 
-  if (steamParams.size > 0) {
+  if (Object.keys(steamParams).length > 0) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
     try {
-      const verifyResponse = await fetch(
-        `${supabaseUrl}/functions/v1/steam-auth`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${anonKey}`,
-          },
-          body: JSON.stringify(Object.fromEntries(steamParams)),
+      // Verify directly with Steam from Vercel
+      const verifyParams = new URLSearchParams()
+      for (const [key, value] of Object.entries(steamParams)) {
+        if (key === "openid.mode") {
+          verifyParams.append("openid.mode", "check_auth")
+        } else {
+          verifyParams.append(key, value)
         }
-      )
+      }
 
-      console.log("Verify response status:", verifyResponse.status)
+      console.log("Verifying with Steam directly...")
+      console.log("Params:", verifyParams.toString())
 
-      if (!verifyResponse.ok) {
-        const errText = await verifyResponse.text()
-        console.error("Steam verify failed:", errText)
+      const steamVerify = await fetch("https://steamcommunity.com/openid/login", {
+        method: "POST",
+        body: verifyParams.toString(),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      })
+
+      const verifyText = await steamVerify.text()
+      console.log("Steam verify response:", verifyText.substring(0, 300))
+
+      if (!verifyText.includes("is_valid:true")) {
+        console.error("Steam verification failed")
         return NextResponse.redirect(`${origin}/auth/error`)
       }
 
-      const steamData = await verifyResponse.json() as {
-        steam_id: string
-        username: string
-        avatar: string
+      // Extract Steam ID
+      const claimedID = steamParams["openid.claimed_id"]
+      const match = claimedID?.match(/\/(\d+)$/)
+      const steamID = match ? match[1] : null
+
+      if (!steamID) {
+        console.error("Invalid Steam ID")
+        return NextResponse.redirect(`${origin}/auth/error`)
       }
 
-      console.log("Steam data:", steamData)
+      console.log("Steam ID:", steamID)
 
+      // Get Steam user info
+      const steamApiKey = process.env.STEAM_API_KEY
+      let username = `Player_${steamID}`
+      let avatar = ""
+
+      if (steamApiKey) {
+        const steamInfoRes = await fetch(
+          `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${steamApiKey}&steamids=${steamID}`
+        )
+        const steamInfo = await steamInfoRes.json() as { response: { players: Array<{ personaname: string; avatarfull: string }> } }
+        const player = steamInfo.response.players[0]
+        if (player) {
+          username = player.personaname
+          avatar = player.avatarfull
+        }
+      }
+
+      console.log("Steam user:", username)
+
+      // Use admin client
       const adminSupabase = createAdminClient(supabaseUrl, serviceRoleKey)
 
+      // Check if user exists
       const { data: existingProfile } = await adminSupabase
         .from("user_profiles")
         .select("id")
-        .eq("steam_id", steamData.steam_id)
+        .eq("steam_id", steamID)
         .maybeSingle()
 
       let userId: string
@@ -73,13 +106,13 @@ export async function GET(request: Request) {
         console.log("Existing user:", userId)
       } else {
         const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
-          email: `${steamData.steam_id}@steam.fragg.gg`,
+          email: `${steamID}@steam.fragg.gg`,
           password: crypto.randomUUID(),
           email_confirm: true,
           user_metadata: {
-            steam_id: steamData.steam_id,
-            username: steamData.username,
-            avatar_url: steamData.avatar,
+            steam_id: steamID,
+            username,
+            avatar_url: avatar,
           },
         })
 
@@ -95,15 +128,16 @@ export async function GET(request: Request) {
           .from("user_profiles")
           .insert({
             id: userId,
-            steam_id: steamData.steam_id,
-            username: steamData.username,
-            avatar_url: steamData.avatar,
+            steam_id: steamID,
+            username,
+            avatar_url: avatar,
           })
       }
 
+      // Generate magic link
       const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
         type: "magiclink",
-        email: `${steamData.steam_id}@steam.fragg.gg`,
+        email: `${steamID}@steam.fragg.gg`,
       })
 
       if (linkError || !linkData) {
@@ -112,6 +146,7 @@ export async function GET(request: Request) {
       }
 
       const actionLink = linkData.properties.action_link
+      console.log("Redirecting to:", actionLink)
       return NextResponse.redirect(actionLink)
 
     } catch (error) {
