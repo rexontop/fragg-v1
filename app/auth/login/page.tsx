@@ -13,7 +13,7 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const returnTo = `${window.location.origin}/auth/callback`
+      const returnTo = `https://fragg.xyz/auth/callback`
       
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/steam-auth?return_to=${encodeURIComponent(returnTo)}`,
