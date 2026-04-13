@@ -1,0 +1,202 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* FRAGG.GG Dark Esports Theme */
+  --background: #0a0a0c;
+  --background-secondary: #111115;
+  --background-card: #16161b;
+  --foreground: #f0f0f0;
+  --card: #16161b;
+  --card-foreground: #f0f0f0;
+  --popover: #16161b;
+  --popover-foreground: #f0f0f0;
+  --primary: #f5a623;
+  --primary-foreground: #0a0a0c;
+  --secondary: #111115;
+  --secondary-foreground: #e8e8e8;
+  --muted: #2a2a35;
+  --muted-foreground: #7a7a8a;
+  --accent: #f5a623;
+  --accent-foreground: #0a0a0c;
+  --destructive: #e53935;
+  --destructive-foreground: #f0f0f0;
+  --success: #43a047;
+  --success-foreground: #f0f0f0;
+  --border: #2a2a35;
+  --input: #2a2a35;
+  --ring: #f5a623;
+  --radius: 0.25rem;
+  
+  /* Chart colors */
+  --chart-1: #f5a623;
+  --chart-2: #e53935;
+  --chart-3: #43a047;
+  --chart-4: #2979ff;
+  --chart-5: #9c27b0;
+  
+  /* CS2 Rarity colors */
+  --rarity-consumer: #b0c3d9;
+  --rarity-industrial: #5e98d9;
+  --rarity-milspec: #4b69ff;
+  --rarity-restricted: #8847ff;
+  --rarity-classified: #d32ce6;
+  --rarity-covert: #eb4b4b;
+  --rarity-gold: #e4ae39;
+}
+
+@theme inline {
+  --font-sans: 'DM Sans', sans-serif;
+  --font-heading: 'Rajdhani', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
+  --color-background-card: var(--background-card);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Scanline overlay effect */
+.scanlines {
+  position: relative;
+}
+
+.scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Orange glow effect */
+.glow-orange {
+  box-shadow: 0 0 20px rgba(245, 166, 35, 0.3);
+}
+
+.glow-orange-sm {
+  box-shadow: 0 0 10px rgba(245, 166, 35, 0.2);
+}
+
+/* Kill feed notification animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-killfeed {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Loading bar animation */
+@keyframes loadingBar {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.loading-bar {
+  animation: loadingBar 1.5s ease-in-out infinite;
+}
+
+/* Rating color classes */
+.rating-high {
+  color: var(--success);
+}
+
+.rating-mid {
+  color: #ffc107;
+}
+
+.rating-low {
+  color: var(--destructive);
+}
+
+/* Rank highlight colors */
+.rank-gold {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+  border-left: 3px solid #ffd700;
+}
+
+.rank-silver {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05));
+  border-left: 3px solid #c0c0c0;
+}
+
+.rank-bronze {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05));
+  border-left: 3px solid #cd7f32;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
