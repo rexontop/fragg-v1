@@ -78,7 +78,6 @@ export async function GET(request: Request) {
         userId = existingProfile.id
         console.log("Existing user:", userId)
       } else {
-        // Find existing auth user by listing
         const { data: allUsers } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 })
         const foundUser = allUsers?.users?.find(u => u.email === `${steamID}@steam.fragg.gg`)
 
@@ -119,6 +118,9 @@ export async function GET(request: Request) {
       const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
         type: "magiclink",
         email: `${steamID}@steam.fragg.gg`,
+        options: {
+          redirectTo: `${origin}/`,
+        }
       })
 
       if (linkError || !linkData) {
