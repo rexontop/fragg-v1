@@ -7,7 +7,6 @@ export async function GET(request: Request) {
   const code = searchParams.get("code")
   const next = searchParams.get("next") ?? "/"
 
-  // Standard OAuth code exchange
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -16,7 +15,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // Steam OpenID callback
   const steamParams: Record<string, string> = {}
   for (const [key, value] of searchParams.entries()) {
     if (key.startsWith("openid.")) {
@@ -29,10 +27,8 @@ export async function GET(request: Request) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
     try {
-      // Extract Steam ID directly from claimed_id
       const claimedID = steamParams["openid.claimed_id"]
-      
-      // Basic validation - must be from steamcommunity.com
+
       if (!claimedID?.includes("steamcommunity.com/openid/id/")) {
         console.error("Invalid claimed_id:", claimedID)
         return NextResponse.redirect(`${origin}/auth/error`)
@@ -48,7 +44,6 @@ export async function GET(request: Request) {
 
       console.log("Steam ID:", steamID)
 
-      // Get Steam user info
       const steamApiKey = process.env.STEAM_API_KEY
       let username = `Player_${steamID}`
       let avatar = ""
@@ -69,10 +64,8 @@ export async function GET(request: Request) {
 
       console.log("Steam user:", username)
 
-      // Use admin client
       const adminSupabase = createAdminClient(supabaseUrl, serviceRoleKey)
 
-      // Check if user exists
       const { data: existingProfile } = await adminSupabase
         .from("user_profiles")
         .select("id")
@@ -85,28 +78,37 @@ export async function GET(request: Request) {
         userId = existingProfile.id
         console.log("Existing user:", userId)
       } else {
-        const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
-          email: `${steamID}@steam.fragg.gg`,
-          password: crypto.randomUUID(),
-          email_confirm: true,
-          user_metadata: {
-            steam_id: steamID,
-            username,
-            avatar_url: avatar,
-          },
-        })
+        const { data: existingAuthUser } = await adminSupabase.auth.admin.getUserByEmail(
+          `${steamID}@steam.fragg.gg`
+        )
 
-        if (createError || !newUser.user) {
-          console.error("Create user error:", createError)
-          return NextResponse.redirect(`${origin}/auth/error`)
+        if (existingAuthUser?.user) {
+          userId = existingAuthUser.user.id
+          console.log("Existing auth user:", userId)
+        } else {
+          const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
+            email: `${steamID}@steam.fragg.gg`,
+            password: crypto.randomUUID(),
+            email_confirm: true,
+            user_metadata: {
+              steam_id: steamID,
+              username,
+              avatar_url: avatar,
+            },
+          })
+
+          if (createError || !newUser.user) {
+            console.error("Create user error:", createError)
+            return NextResponse.redirect(`${origin}/auth/error`)
+          }
+
+          userId = newUser.user.id
+          console.log("New user created:", userId)
         }
-
-        userId = newUser.user.id
-        console.log("New user created:", userId)
 
         await adminSupabase
           .from("user_profiles")
-          .insert({
+          .upsert({
             id: userId,
             steam_id: steamID,
             username,
@@ -114,7 +116,6 @@ export async function GET(request: Request) {
           })
       }
 
-      // Generate magic link
       const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
         type: "magiclink",
         email: `${steamID}@steam.fragg.gg`,
