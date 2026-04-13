@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     try {
       // Step 1: Verify with Edge Function
       const verifyResponse = await fetch(
-        `${supabaseUrl}/functions/v1/steam-auth/verify`,
+        `${supabaseUrl}/functions/v1/steam-auth`,
         {
           method: "POST",
           headers: {
