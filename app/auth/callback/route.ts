@@ -78,12 +78,12 @@ export async function GET(request: Request) {
         userId = existingProfile.id
         console.log("Existing user:", userId)
       } else {
-        const { data: existingAuthUser } = await adminSupabase.auth.admin.getUserByEmail(
-          `${steamID}@steam.fragg.gg`
-        )
+        // Find existing auth user by listing
+        const { data: allUsers } = await adminSupabase.auth.admin.listUsers({ perPage: 1000 })
+        const foundUser = allUsers?.users?.find(u => u.email === `${steamID}@steam.fragg.gg`)
 
-        if (existingAuthUser?.user) {
-          userId = existingAuthUser.user.id
+        if (foundUser) {
+          userId = foundUser.id
           console.log("Existing auth user:", userId)
         } else {
           const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
