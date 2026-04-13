@@ -1,6 +1,5 @@
 "use client"
 
-import { createClient } from "@/lib/supabase/client"
 import { useState } from "react"
 import Link from "next/link"
 import { Crosshair, Loader2 } from "lucide-react"
@@ -13,20 +12,27 @@ export default function LoginPage() {
     setIsLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    
-    // Using Discord OAuth as a placeholder - in production you would use Steam OpenID
-    // Steam requires custom integration via their Web API
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "discord",
-      options: {
-        redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? 
-          `${window.location.origin}/auth/callback`,
-      },
-    })
+    try {
+      const returnTo = `${window.location.origin}/auth/callback`
+      
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/steam-auth?return_to=${encodeURIComponent(returnTo)}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          }
+        }
+      )
+      const data = await res.json()
 
-    if (error) {
-      setError(error.message)
+      if (data.login_url) {
+        window.location.href = data.login_url
+      } else {
+        setError("Failed to get Steam login URL")
+        setIsLoading(false)
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.")
       setIsLoading(false)
     }
   }
@@ -39,11 +45,11 @@ export default function LoginPage() {
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <Crosshair className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold text-foreground">
+            <span className="text-2xl font-bold">
               FRAGG<span className="text-primary">.GG</span>
             </span>
           </Link>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Welcome Back</h1>
+          <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
           <p className="text-muted-foreground">Sign in with your Steam account to continue</p>
         </div>
 
@@ -74,27 +80,13 @@ export default function LoginPage() {
             )}
           </button>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>By signing in, you agree to our</p>
-            <p>
-              <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
-              {" & "}
-              <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
-            </p>
-          </div>
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            By signing in, you agree to our{" "}
+            <Link href="/terms" className="text-primary hover:underline">
+              Terms of Service
+            </Link>
+          </p>
         </div>
-
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Don&apos;t have a Steam account?{" "}
-          <a 
-            href="https://store.steampowered.com/join" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            Create one
-          </a>
-        </p>
       </div>
     </div>
   )
