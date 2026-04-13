@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // Steam OpenID callback - check for openid params
+  // Steam OpenID callback
   const steamParams = new URLSearchParams()
   for (const [key, value] of searchParams.entries()) {
     if (key.startsWith("openid.")) {
@@ -30,7 +30,6 @@ export async function GET(request: Request) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
     try {
-      // Step 1: Verify with Edge Function
       const verifyResponse = await fetch(
         `${supabaseUrl}/functions/v1/steam-auth`,
         {
@@ -59,10 +58,8 @@ export async function GET(request: Request) {
 
       console.log("Steam data:", steamData)
 
-      // Step 2: Use admin client
       const adminSupabase = createAdminClient(supabaseUrl, serviceRoleKey)
 
-      // Step 3: Check if user exists
       const { data: existingProfile } = await adminSupabase
         .from("user_profiles")
         .select("id")
@@ -75,7 +72,6 @@ export async function GET(request: Request) {
         userId = existingProfile.id
         console.log("Existing user:", userId)
       } else {
-        // Step 4: Create new user
         const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
           email: `${steamData.steam_id}@steam.fragg.gg`,
           password: crypto.randomUUID(),
@@ -95,7 +91,6 @@ export async function GET(request: Request) {
         userId = newUser.user.id
         console.log("New user created:", userId)
 
-        // Step 5: Create profile
         await adminSupabase
           .from("user_profiles")
           .insert({
@@ -106,7 +101,6 @@ export async function GET(request: Request) {
           })
       }
 
-      // Step 6: Generate magic link to sign in
       const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
         type: "magiclink",
         email: `${steamData.steam_id}@steam.fragg.gg`,
@@ -117,7 +111,6 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/auth/error`)
       }
 
-      // Step 7: Redirect with token
       const actionLink = linkData.properties.action_link
       return NextResponse.redirect(actionLink)
 
