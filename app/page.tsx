@@ -33,18 +33,19 @@ const stats = [
 ]
 
 export default function HomePage() {
+  // Using a variable for your function URL to keep it clean
+  const STEAM_LOGIN_URL = "https://rfhszhfatgcyphiwrmzb.supabase.co/functions/v1/steam-auth"
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero Section */}
       <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden px-4 pt-16">
-        {/* Background Effects */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[120px]" />
           <div className="absolute bottom-0 left-0 h-[400px] w-[400px] -translate-x-1/2 translate-y-1/2 rounded-full bg-accent/20 blur-[100px]" />
           <div className="absolute bottom-1/4 right-0 h-[300px] w-[300px] translate-x-1/2 rounded-full bg-primary/10 blur-[80px]" />
         </div>
 
-        {/* Grid Pattern */}
         <div 
           className="pointer-events-none absolute inset-0 opacity-[0.03]"
           style={{
@@ -54,14 +55,12 @@ export default function HomePage() {
         />
 
         <div className="relative z-10 mx-auto max-w-5xl text-center">
-          {/* Badge */}
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm text-primary">
             <Zap className="h-4 w-4" />
             <span>Season 4 Now Live</span>
             <ChevronRight className="h-4 w-4" />
           </div>
 
-          {/* Main Headline */}
           <h1 className="mb-6 text-balance text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
             Dominate the{" "}
             <span className="relative">
@@ -76,13 +75,13 @@ export default function HomePage() {
             and climb the ranks with FRAGG.GG&apos;s competitive leaderboards.
           </p>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+            {/* FIXED BUTTON: Direct link to Steam Function */}
             <Button size="lg" className="gap-2 px-8" asChild>
-              <Link href="/auth/sign-up">
+              <a href={STEAM_LOGIN_URL}>
                 <Target className="h-5 w-5" />
                 Start Tracking
-              </Link>
+              </a>
             </Button>
             <Button size="lg" variant="outline" className="gap-2 px-8" asChild>
               <Link href="/leaderboard">
@@ -92,7 +91,6 @@ export default function HomePage() {
             </Button>
           </div>
 
-          {/* Stats Row */}
           <div className="mt-16 grid grid-cols-2 gap-8 sm:grid-cols-4">
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
@@ -103,7 +101,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
           <div className="flex h-10 w-6 items-start justify-center rounded-full border border-border/50 p-1.5">
             <div className="h-2 w-1 animate-bounce rounded-full bg-primary" />
@@ -160,11 +157,12 @@ export default function HomePage() {
           <p className="mb-8 text-lg text-muted-foreground">
             Join thousands of players already tracking their CS2 journey with FRAGG.GG
           </p>
+          {/* FIXED BUTTON: Direct link to Steam Function */}
           <Button size="lg" className="gap-2 px-8" asChild>
-            <Link href="/auth/sign-up">
+            <a href={STEAM_LOGIN_URL}>
               <TrendingUp className="h-5 w-5" />
               Create Free Account
-            </Link>
+            </a>
           </Button>
         </div>
       </section>
