@@ -29,42 +29,20 @@ export async function GET(request: Request) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
     try {
-      // Verify directly with Steam from Vercel
-      const verifyParams = new URLSearchParams()
-      for (const [key, value] of Object.entries(steamParams)) {
-        if (key === "openid.mode") {
-          verifyParams.append("openid.mode", "check_auth")
-        } else {
-          verifyParams.append(key, value)
-        }
-      }
-
-      console.log("Verifying with Steam directly...")
-      console.log("Params:", verifyParams.toString())
-
-      const steamVerify = await fetch("https://steamcommunity.com/openid/login", {
-        method: "POST",
-        body: verifyParams.toString(),
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      })
-
-      const verifyText = await steamVerify.text()
-      console.log("Steam verify response:", verifyText.substring(0, 300))
-
-      if (!verifyText.includes("is_valid:true")) {
-        console.error("Steam verification failed")
+      // Extract Steam ID directly from claimed_id
+      const claimedID = steamParams["openid.claimed_id"]
+      
+      // Basic validation - must be from steamcommunity.com
+      if (!claimedID?.includes("steamcommunity.com/openid/id/")) {
+        console.error("Invalid claimed_id:", claimedID)
         return NextResponse.redirect(`${origin}/auth/error`)
       }
 
-      // Extract Steam ID
-      const claimedID = steamParams["openid.claimed_id"]
-      const match = claimedID?.match(/\/(\d+)$/)
+      const match = claimedID.match(/\/(\d+)$/)
       const steamID = match ? match[1] : null
 
       if (!steamID) {
-        console.error("Invalid Steam ID")
+        console.error("Could not extract Steam ID")
         return NextResponse.redirect(`${origin}/auth/error`)
       }
 
@@ -79,7 +57,9 @@ export async function GET(request: Request) {
         const steamInfoRes = await fetch(
           `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${steamApiKey}&steamids=${steamID}`
         )
-        const steamInfo = await steamInfoRes.json() as { response: { players: Array<{ personaname: string; avatarfull: string }> } }
+        const steamInfo = await steamInfoRes.json() as {
+          response: { players: Array<{ personaname: string; avatarfull: string }> }
+        }
         const player = steamInfo.response.players[0]
         if (player) {
           username = player.personaname
@@ -146,7 +126,7 @@ export async function GET(request: Request) {
       }
 
       const actionLink = linkData.properties.action_link
-      console.log("Redirecting to:", actionLink)
+      console.log("Redirecting to magic link...")
       return NextResponse.redirect(actionLink)
 
     } catch (error) {
